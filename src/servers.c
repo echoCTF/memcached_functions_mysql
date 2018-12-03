@@ -139,7 +139,7 @@ long long memc_servers_set(__attribute__ ((unused)) UDF_INIT *initid,
 
   pthread_mutex_unlock(&memc_servers_mutex);
 
-  fprintf(stderr, "rc %d\n", rc);
+  //fprintf(stderr, "rc %d\n", rc);
   return ((long long) rc == MEMCACHED_SUCCESS ? 0 : rc);
 }
 

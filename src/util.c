@@ -99,7 +99,7 @@ memc_function_st *prepare_args(UDF_ARGS *args,
   }
   container= calloc(1, sizeof(memc_function_st));
 
-  fprintf(stderr, "min args %d max args %d", min_args, max_args);
+  //fprintf(stderr, "min args %d max args %d", min_args, max_args);
   /* no need to do anything else */
   if (min_args == 0 && max_args == 0)
     return container;
@@ -147,7 +147,7 @@ memc_function_st *prepare_args(UDF_ARGS *args,
 	  {
 		  container->expiration= (time_t) 0;
 	  }
-	  fprintf(stderr, "expiration %d\n", (int) container->expiration);
+	  //fprintf(stderr, "expiration %d\n", (int) container->expiration);
 	}
 	break;
 
@@ -163,7 +163,7 @@ memc_function_st *prepare_args(UDF_ARGS *args,
 		break;
   }
 
-  fprintf(stderr, "prepare_args finished\n");
+  //fprintf(stderr, "prepare_args finished\n");
   return container;
 }
 

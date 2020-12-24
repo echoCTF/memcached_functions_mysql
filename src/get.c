@@ -36,8 +36,9 @@ my_bool memc_get_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
   args->arg_type[0]= STRING_RESULT;
 
   initid->max_length= MEMC_UDF_MAX_SIZE;
-  container= calloc(1, sizeof(memc_function_st));
 
+  if ((container= calloc(1, sizeof(memc_function_st))) == NULL)
+                   err(1, NULL);
   /* Init the memcached_st we will use for this pass */
   rc= memc_get_servers(&container->memc);
   memcached_result_create(&container->memc, &container->results);
@@ -107,8 +108,8 @@ my_bool memc_get_by_key_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
   args->arg_type[0]= args->arg_type[1]= STRING_RESULT;
 
   initid->max_length= MEMC_UDF_MAX_SIZE;
-  container= calloc(1,sizeof(memc_function_st));
-
+  if((container=calloc(1,sizeof(memc_function_st)))==NULL)
+    err(1, NULL);
   /* Init the memcached_st we will use for this pass */
   rc= memc_get_servers(&container->memc);
   memcached_result_create(&container->memc, &container->results);
@@ -169,4 +170,3 @@ void memc_get_by_key_deinit(UDF_INIT *initid)
 
   return;
 }
-

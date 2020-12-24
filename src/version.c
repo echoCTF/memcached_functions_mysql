@@ -29,7 +29,9 @@ my_bool memc_udf_version_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
     return 1;
   }
 
-  version_string= calloc(1, VERSION_STRING_LENGTH + 1);
+  if ((version_string = calloc(1, VERSION_STRING_LENGTH+1)) == NULL)
+    err(1, NULL);
+
   strncpy(version_string, VERSION_STRING, VERSION_STRING_LENGTH);
   initid->ptr= version_string;
 

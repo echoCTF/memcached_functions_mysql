@@ -26,7 +26,7 @@ my_bool memc_mget_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 
 
   /* this is how to fail */
-  if (! args->arg_count >= 1)
+  if (args->arg_count < 1)
   {
     strncpy(message,
             "At least one argument must be supplied: memc_mget('<key,keyN,...>').",
@@ -158,4 +158,3 @@ void memc_mget_by_key_deinit(UDF_INIT *initid)
 
   return;
 }
-

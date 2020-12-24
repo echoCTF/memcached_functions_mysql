@@ -170,7 +170,10 @@ memc_function_st *prepare_args(UDF_ARGS *args,
 
 my_string_st *string_create(size_t string_size)
 {
-    my_string_st *str_st = malloc(sizeof(my_string_st));
+    my_string_st *str_st;
+    if ((str_st = malloc(sizeof(my_string_st))) == NULL)
+      err(1, NULL);
+
     str_st->string = NULL;
     str_st->length= 0;
     str_st->string = malloc(string_size);

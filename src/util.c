@@ -97,7 +97,8 @@ memc_function_st *prepare_args(UDF_ARGS *args,
     strncpy(message, msg_buf, MYSQL_ERRMSG_SIZE);
     return (memc_function_st*)NULL;
   }
-  container= calloc(1, sizeof(memc_function_st));
+  if ((container = calloc(1, sizeof(memc_function_st))) == NULL)
+    err(1, NULL);
 
   //fprintf(stderr, "min args %d max args %d", min_args, max_args);
   /* no need to do anything else */
@@ -223,7 +224,3 @@ void string_reset(my_string_st *str_st)
     str_st->length= 0;
     str_st->end = str_st->string;
 }
-
-
-
-

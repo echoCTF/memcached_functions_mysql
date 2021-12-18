@@ -1,6 +1,6 @@
-INCLUDES =
-LDADDS = 
-LIBS = 
+AM_CPPFLAGS =
+LDADDS =
+LIBS =
 
 EXTRA_DIST = memc_test.cmp memc_test.sql
 

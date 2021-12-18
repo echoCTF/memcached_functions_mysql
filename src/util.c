@@ -90,10 +90,8 @@ memc_function_st *prepare_args(UDF_ARGS *args,
   if (args->arg_count < min_args || args->arg_count > max_args)
   {
     char msg_buf[200];
-    sprintf(msg_buf, "Usage: %s",
-            memc_error_msg(func), min_args);
-    fprintf(stderr, "Usage: %s",
-            memc_error_msg(func), min_args);
+    sprintf(msg_buf, "Usage: %s", memc_error_msg(func));
+    fprintf(stderr, "Usage: %s", memc_error_msg(func));
 
     strncpy(message, msg_buf, MYSQL_ERRMSG_SIZE);
     return (memc_function_st*)NULL;

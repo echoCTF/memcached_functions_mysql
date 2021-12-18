@@ -65,7 +65,7 @@ char *memc_get(UDF_INIT *initid, UDF_ARGS *args,
 
   memc_function_st *container= (memc_function_st *)initid->ptr;
 
-  rc= memcached_mget(&container->memc, args->args, (size_t *)args->lengths, 1);
+  rc= memcached_mget(&container->memc, (const char * const *)args->args, (size_t *)args->lengths, 1);
 
   memcached_fetch_result(&container->memc, &container->results, &rc);
 
@@ -76,7 +76,7 @@ char *memc_get(UDF_INIT *initid, UDF_ARGS *args,
     *is_null= 1;
   }
 
-  return  memcached_result_value(&container->results);
+  return (char *)memcached_result_value(&container->results);
 }
 
 /* de-init UDF */
@@ -145,7 +145,7 @@ char *memc_get_by_key(UDF_INIT *initid, UDF_ARGS *args,
   rc= memcached_mget_by_key(&container->memc,
                               args->args[0],
                               (size_t )args->lengths[0],
-                              keys,
+                              (const char * const*)keys,
                               lengths,
                               args->arg_count - 1);
 
@@ -156,7 +156,7 @@ char *memc_get_by_key(UDF_INIT *initid, UDF_ARGS *args,
     *is_null= 1;
   }
 
-  return (memcached_result_value(&container->results));
+  return (char *)(memcached_result_value(&container->results));
 }
 
 /* de-init UDF */

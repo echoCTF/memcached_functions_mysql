@@ -38,4 +38,5 @@ AC_TYPE_UINT16_T
 AC_TYPE_UINT64_T
 AC_PROG_CPP
 AC_PROG_CXX
-AC_OUTPUT(Makefile src/Makefile tests/Makefile docs/Makefile)
+AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile docs/Makefile])
+AC_OUTPUT

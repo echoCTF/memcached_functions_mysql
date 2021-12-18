@@ -2,7 +2,7 @@ Hi!
 
 This is the memcached mysql UDFs (user defined functions) to work with libmemcached, Brian Aker's super duper
 new fast client library for memcached.
-
+Original repo: https://github.com/smira/memcached_functions_mysql
 
 Prerequisites
 
@@ -24,15 +24,15 @@ library path for your server (and yes, we should fix this). On Linux you can
 set this by exporting the correct path in LD_LIBRARY_PATH for your mysql
 server.
 
-You can install the functions as listed below by cutting and pasting,or 
+You can install the functions as listed below by cutting and pasting,or
 optionally there now are two ways to install these easily:
 
 * sql/install_functions.sql - this loads the functions with simple CREATE FUNCTION
 commands as shown below
 
-* utils/install.pl - This is a perl script that queries your mysql.func table to see what 
-functions are already installed and installs them if not yet installed. It will ask you 
-each time for every function not installed, if you want to install, or you can run it with 
+* utils/install.pl - This is a perl script that queries your mysql.func table to see what
+functions are already installed and installs them if not yet installed. It will ask you
+each time for every function not installed, if you want to install, or you can run it with
 -s/--silent to have it not prompt you. It runs as the 'root' database user (required).
 
 memc_servers_add()
@@ -151,7 +151,7 @@ mysql> select memc_set('abc', 'cool new memcached udf in mysql');
 +----------------------------------------------------+
 | memc_set('abc', 'cool new memcached udf in mysql') |
 +----------------------------------------------------+
-|                                                  0 | 
+|                                                  0 |
 +----------------------------------------------------+
 1 row in set (0.00 sec)
 
@@ -162,7 +162,7 @@ mysql> select memc_get('abc');
 +---------------------------------+
 | memc_get('abc')                 |
 +---------------------------------+
-| cool new memcached udf in mysql | 
+| cool new memcached udf in mysql |
 +---------------------------------+
 1 row in set (0.00 sec)
 
@@ -173,7 +173,7 @@ mysql> select memc_delete('abc');
 +--------------------+
 | memc_delete('abc') |
 +--------------------+
-|                  0 | 
+|                  0 |
 +--------------------+
 1 row in set (0.00 sec)
 
@@ -181,7 +181,7 @@ mysql> select memc_get('abc');
 +-----------------+
 | memc_get('abc') |
 +-----------------+
-| NULL            | 
+| NULL            |
 +-----------------+
 1 row in set (0.00 sec)
 
@@ -192,7 +192,7 @@ mysql> select memc_set('abc', ' Spot ');
 +---------------------------+
 | memc_set('abc', ' Spot ') |
 +---------------------------+
-|                         0 | 
+|                         0 |
 +---------------------------+
 1 row in set (0.00 sec)
 
@@ -200,15 +200,15 @@ mysql> select memc_append('abc', ' run.');
 +-----------------------------+
 | memc_append('abc', ' run.') |
 +-----------------------------+
-|                           0 | 
+|                           0 |
 +-----------------------------+
 1 row in set (0.00 sec)
 
-mysql> select memc_get('abc');    
+mysql> select memc_get('abc');
 +-----------------+
 | memc_get('abc') |
 +-----------------+
-|  Spot  run.     | 
+|  Spot  run.     |
 +-----------------+
 1 row in set (0.00 sec)
 
@@ -216,7 +216,7 @@ mysql> select memc_prepend('abc', 'See');
 +----------------------------+
 | memc_prepend('abc', 'See') |
 +----------------------------+
-|                          0 | 
+|                          0 |
 +----------------------------+
 1 row in set (0.00 sec)
 
@@ -224,7 +224,7 @@ mysql> select memc_get('abc');
 +-----------------+
 | memc_get('abc') |
 +-----------------+
-| See Spot  run.  | 
+| See Spot  run.  |
 +-----------------+
 1 row in set (0.00 sec)
 
@@ -235,7 +235,7 @@ mysql> select memc_set('sequence:1', 1);
 +---------------------------+
 | memc_set('sequence:1', 1) |
 +---------------------------+
-|                         0 | 
+|                         0 |
 +---------------------------+
 1 row in set (0.00 sec)
 
@@ -243,7 +243,7 @@ mysql> select memc_get('sequence:1');
 +------------------------+
 | memc_get('sequence:1') |
 +------------------------+
-| 1                      | 
+| 1                      |
 +------------------------+
 1 row in set (0.00 sec)
 
@@ -251,7 +251,7 @@ mysql> select memc_increment('sequence:1', 5);
 +---------------------------------+
 | memc_increment('sequence:1', 5) |
 +---------------------------------+
-|                               6 | 
+|                               6 |
 +---------------------------------+
 1 row in set (0.00 sec)
 
@@ -259,7 +259,7 @@ mysql> select memc_increment('sequence:1', 10);
 ]+----------------------------------+
 | memc_increment('sequence:1', 10) |
 +----------------------------------+
-|                               16 | 
+|                               16 |
 +----------------------------------+
 1 row in set (0.01 sec)
 
@@ -267,7 +267,7 @@ mysql> select memc_increment('sequence:1');
 +------------------------------+
 | memc_increment('sequence:1') |
 +------------------------------+
-|                           17 | 
+|                           17 |
 +------------------------------+
 1 row in set (0.00 sec)
 
@@ -275,7 +275,7 @@ mysql> select memc_decrement('sequence:1');
 +------------------------------+
 | memc_decrement('sequence:1') |
 +------------------------------+
-|                           16 | 
+|                           16 |
 +------------------------------+
 1 row in set (0.00 sec)
 
@@ -283,7 +283,7 @@ mysql> select memc_decrement('sequence:1', 15);
 +----------------------------------+
 | memc_decrement('sequence:1', 15) |
 +----------------------------------+
-|                                1 | 
+|                                1 |
 +----------------------------------+
 1 row in set (0.00 sec)
 
@@ -294,7 +294,7 @@ mysql> select memc_replace('sequence:1', 'String value');
 +--------------------------------------------+
 | memc_replace('sequence:1', 'String value') |
 +--------------------------------------------+
-|                                          0 | 
+|                                          0 |
 +--------------------------------------------+
 1 row in set (0.00 sec)
 
@@ -302,7 +302,7 @@ mysql> select memc_get('sequence:1');
 +------------------------+
 | memc_get('sequence:1') |
 +------------------------+
-| String value           | 
+| String value           |
 +------------------------+
 1 row in set (0.01 sec)
 
@@ -317,7 +317,7 @@ You use this to set the type of behavior your client has to the memcached server
 
 mysql> select memc_list_behaviors()\G
 *************************** 1. row ***************************
-memc_list_behaviors(): 
+memc_list_behaviors():
 +-------------------------------------+
 | MEMCACHED SERVER BEHAVIORS          |
 +-------------------------------------+
@@ -335,14 +335,14 @@ mysql> select memc_servers_behavior_set('MEMCACHED_BEHAVIOR_TCP_NODELAY','1');
 +-----------------------------------------------------------------+
 | memc_servers_behavior_set('MEMCACHED_BEHAVIOR_TCP_NODELAY','1') |
 +-----------------------------------------------------------------+
-|                                                               0 | 
+|                                                               0 |
 +-----------------------------------------------------------------+
 1 row in set (0.01 sec)
 
 Have fun!
 
 Cheers,
-  Brian, 
-    Seattle, WA 
-  Patrick, 
+  Brian,
+    Seattle, WA
+  Patrick,
     Sharon, NH (Live Free or Die!).

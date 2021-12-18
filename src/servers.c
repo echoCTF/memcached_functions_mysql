@@ -227,7 +227,7 @@ my_bool memc_servers_behavior_set_init(__attribute__ ((unused)) UDF_INIT *initid
   /*
     Do some checking of supplied behavior and setting
 
-    If a 1|0 value, check. Print error if not. We need some sort of 
+    If a 1|0 value, check. Print error if not. We need some sort of
     check for the other non 1|0 behaviors
   */
   if (! strcasecmp(args->args[0], "MEMCACHED_BEHAVIOR_SUPPORT_CAS") ||
@@ -422,11 +422,11 @@ long long memc_servers_behavior_set(__attribute__ ((unused)) UDF_INIT *initid,
   }
   else if (! strcasecmp(args->args[0], "MEMCACHED_BEHAVIOR_DISTRIBUTION"))
   {
-    if (! strcasecmp(args->args[1], "MEMCACHED_DISTRIBUTION_MODULA")) 
+    if (! strcasecmp(args->args[1], "MEMCACHED_DISTRIBUTION_MODULA"))
       setting= MEMCACHED_DISTRIBUTION_MODULA;
-    else if (! strcasecmp(args->args[1], "MEMCACHED_DISTRIBUTION_CONSISTENT")) 
+    else if (! strcasecmp(args->args[1], "MEMCACHED_DISTRIBUTION_CONSISTENT"))
       setting= MEMCACHED_DISTRIBUTION_CONSISTENT;
-    else if (! strcasecmp(args->args[1], "MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA")) 
+    else if (! strcasecmp(args->args[1], "MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA"))
       setting= MEMCACHED_DISTRIBUTION_CONSISTENT_KETAMA;
     else
       setting= MEMCACHED_DISTRIBUTION_MODULA;
@@ -609,7 +609,7 @@ char *memc_servers_behavior_get(__attribute__ ((unused)) UDF_INIT *initid,
   memcached_return rc;
   memcached_behavior behavior;
   uint64_t ivalue;
-  static char svalue[40];
+  static char svalue[41];
 
   if (! strcasecmp(args->args[0], "MEMCACHED_BEHAVIOR_SUPPORT_CAS"))
     behavior= MEMCACHED_BEHAVIOR_SUPPORT_CAS;
@@ -727,7 +727,7 @@ char *memc_servers_behavior_get(__attribute__ ((unused)) UDF_INIT *initid,
   }
   else
   {
-    sprintf(svalue, "%d", ivalue);
+    sprintf(svalue, "%ld", ivalue);
   }
   *length= strlen(svalue);
   return (char *)svalue;
@@ -928,5 +928,3 @@ int memc_get_servers(memcached_st *clone)
 
   return retval ;
 }
-
-

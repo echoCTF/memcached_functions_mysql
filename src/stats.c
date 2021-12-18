@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include <stdio.h>
+#include <err.h>
 
 #include <libmemcached/memcached.h>
 #include "common.h"
@@ -107,7 +108,7 @@ char *memc_stats(UDF_INIT *initid, UDF_ARGS *args,
     char **list;
     char **ptr;
     memcached_server_instance_st instance=
-        memcached_server_instance_by_position(&container->memc, x);
+        (memcached_server_instance_st) memcached_server_instance_by_position(&container->memc, x);
 
     list= memcached_stat_get_keys(&container->memc, &stat[x], &rc);
 

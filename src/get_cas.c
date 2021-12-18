@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include <stdio.h>
+#include <err.h>
 
 #include <libmemcached/memcached.h>
 #include "common.h"

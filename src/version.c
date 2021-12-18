@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <err.h>
 
 #include "common.h"
 #define BRIAN_LIKES_LOOP 1;

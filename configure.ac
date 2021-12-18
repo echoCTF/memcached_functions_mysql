@@ -5,7 +5,9 @@ AC_CONFIG_HEADERS(src/libmemcached_config.h)
 AM_INIT_AUTOMAKE
 
 AC_PROG_CC
-AC_PROG_LIBTOOL
+#AC_PROG_LIBTOOL
+LT_INIT
+
 LIBTOOL="$LIBTOOL --preserve-dup-deps"
 AC_SUBST(LIBTOOL)dnl
 

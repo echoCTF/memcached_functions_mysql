@@ -727,7 +727,7 @@ char *memc_servers_behavior_get(__attribute__ ((unused)) UDF_INIT *initid,
   }
   else
   {
-    sprintf(svalue, "%ld", ivalue);
+    sprintf(svalue, "%llu", ivalue);
   }
   *length= strlen(svalue);
   return (char *)svalue;

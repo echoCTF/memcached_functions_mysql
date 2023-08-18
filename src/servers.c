@@ -727,7 +727,7 @@ char *memc_servers_behavior_get(__attribute__ ((unused)) UDF_INIT *initid,
   }
   else
   {
-    sprintf(svalue, "%llu", ivalue);
+    sprintf(svalue, "%lu", ivalue);
   }
   *length= strlen(svalue);
   return (char *)svalue;
@@ -908,20 +908,6 @@ int memc_get_servers(memcached_st *clone)
   if (master_memc == NULL)
     master_memc= memcached_create(NULL);
   count= memcached_server_count(master_memc);
-  if (count == 0)
-  {
-      memcached_server_st *servers;
-
-      servers = memcached_servers_parse("127.0.0.1:22201");
-      if (servers != NULL)
-      {
-          rc= memcached_server_push(master_memc, servers);
-          if (rc == MEMCACHED_SUCCESS)
-          {
-          }
-          memcached_server_list_free(servers);
-      }
-  }
   test= memcached_clone(clone, master_memc);
   pthread_mutex_unlock(&memc_servers_mutex);
   retval= test ? 1 : 0;

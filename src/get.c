@@ -66,7 +66,12 @@ char *memc_get(UDF_INIT *initid, UDF_ARGS *args,
   memc_function_st *container= (memc_function_st *)initid->ptr;
 
   rc= memcached_mget(&container->memc, (const char * const *)args->args, (size_t *)args->lengths, 1);
-
+  if(rc!=MEMCACHED_SUCCESS)
+  {
+    *is_null= 1;
+    fprintf(stderr,"Couldn't get key: %s error was %s\n",args->args[0],memcached_strerror(&container->memc, rc));
+    return NULL;
+  }
   memcached_fetch_result(&container->memc, &container->results, &rc);
 
   *length= memcached_result_length(&container->results);
@@ -121,7 +126,7 @@ my_bool memc_get_by_key_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 }
 
 /*
-  memc_ge
+  memc_get
   get cached object, takes hash-key arg
 */
 char *memc_get_by_key(UDF_INIT *initid, UDF_ARGS *args,

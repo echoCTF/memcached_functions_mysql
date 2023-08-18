@@ -68,7 +68,8 @@ long long memc_set(UDF_INIT *initid, UDF_ARGS *args,
                     args->args[0], (size_t)args->lengths[0],
                     args->args[1], (size_t)args->lengths[1],
                     container->expiration, (uint16_t)0);
-
+  if(rc!= MEMCACHED_SUCCESS)
+    fprintf(stderr,"Couldn't store key: %s error was %s\n",args->args[0],memcached_strerror(&container->memc, rc));
   return (rc != MEMCACHED_SUCCESS) ? (long long) 0 : (long long) 1;
 }
 
@@ -93,7 +94,7 @@ my_bool memc_set_by_key_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
   rc= memc_get_servers(&container->memc);
 
   initid->ptr= (char *)container;
-  fprintf(stderr, "1: container->expiration %lld", container->expiration);
+  fprintf(stderr, "1: container->expiration %ld", container->expiration);
 
   return 0;
 }

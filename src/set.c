@@ -94,7 +94,7 @@ my_bool memc_set_by_key_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
   rc= memc_get_servers(&container->memc);
 
   initid->ptr= (char *)container;
-  fprintf(stderr, "1: container->expiration %ld", container->expiration);
+  fprintf(stderr, "1: container->expiration %lld", container->expiration);
 
   return 0;
 }

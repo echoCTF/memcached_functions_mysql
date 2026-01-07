@@ -1,0 +1,51 @@
+name: build-release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_name:
+        description: "Release name"
+        required: true
+        default: "manual-build"
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          memcached \
+          libmemcached-dev \
+          mysql-client \
+          libmysqlclient-dev
+
+    - name: Bootstrap
+      run: ./config/bootstrap
+
+    - name: Configure
+      run: |
+        ./configure \
+          --with-mysql=/usr/bin/mysql_config
+
+    - name: Build
+      run: make -j$(nproc)
+
+    - name: Install to staging directory
+      run: |
+        make install DESTDIR=${{ github.workspace }}/release
+
+    - name: Archive binary release
+      run: |
+        tar -czf build-${{ github.sha }}.tar.gz -C release .
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: binary-release
+        path: build-${{ github.sha }}.tar.gz

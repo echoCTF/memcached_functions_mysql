@@ -22,16 +22,15 @@ jobs:
           build-essential \
           memcached \
           libmemcached-dev \
-          mysql-client \
-          libmysqlclient-dev
-
+          libmariadb-dev \
+          libmariadb3
     - name: Bootstrap
       run: ./config/bootstrap
 
     - name: Configure
       run: |
         ./configure \
-          --with-mysql=/usr/bin/mysql_config
+          --with-mysql=/usr/bin/mariadb_config
 
     - name: Build
       run: make -j$(nproc)

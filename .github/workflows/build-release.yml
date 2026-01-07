@@ -24,6 +24,7 @@ jobs:
           libmemcached-dev \
           libmariadb-dev \
           libmariadb3
+
     - name: Bootstrap
       run: ./config/bootstrap
 
@@ -41,10 +42,14 @@ jobs:
 
     - name: Archive binary release
       run: |
-        tar -czf build-${{ github.sha }}.tar.gz -C release .
+        tarball="build-${{ github.event.inputs.release_name }}-${{ github.sha }}.tar.gz"
+        echo "Creating archive $tarball"
+        tar -czf "$tarball" -C release .
+        echo "tarball=$tarball" >> $GITHUB_ENV  # save for next step
 
     - name: Upload build artifact
       uses: actions/upload-artifact@v6
       with:
-        name: binary-release
-        path: build-${{ github.sha }}.tar.gz
+        name: binary-release-${{ github.event.inputs.release_name }}
+        path: ${{ env.tarball }}
+

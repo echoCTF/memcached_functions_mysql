@@ -45,7 +45,7 @@ jobs:
 
     - name: Archive binary release
       run: |
-        tarball="build-${{ github.event.inputs.release_name }}-${{ github.sha }}.tar.gz"
+        tarball="build-${{ github.event.inputs.release_name }}.tar.gz"
         echo "Creating archive $tarball"
         tar -czf "$tarball" -C release .
         echo "tarball=$tarball" >> $GITHUB_ENV # save for next step

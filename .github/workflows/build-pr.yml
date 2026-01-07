@@ -1,0 +1,33 @@
+name: build-pr
+
+on:
+  pull_request:
+    branches:
+      - '**'
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          memcached \
+          libmemcached-dev \
+          libmariadb-dev \
+          libmariadb3
+
+    - name: Bootstrap
+      run: ./config/bootstrap
+
+    - name: Configure
+      run: |
+        ./configure \
+          --with-mysql=/usr/bin/mariadb_config
+
+    - name: Build
+      run: make -j$(nproc)

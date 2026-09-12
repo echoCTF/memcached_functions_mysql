@@ -76,6 +76,8 @@ char* memc_error_msg(memcached_udf_function func)
     return "memc_prefix_set('<prefix>')";
   case MEMC_PREFIX_GET:
     return "memc_prefix_get()";
+  default:
+    return "unknown memc_* function";
   }
 }
 

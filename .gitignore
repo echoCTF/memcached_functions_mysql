@@ -53,3 +53,10 @@ docs/memc_set.3
 src/libmemcached_config.h
 src/libmemcached_functions_mysql.la
 udf.txt
+compile
+config.guess
+config.sub
+depcomp
+install-sh
+ltmain.sh
+missing

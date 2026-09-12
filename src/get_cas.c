@@ -103,10 +103,14 @@ long long memc_get_cas(UDF_INIT *initid, UDF_ARGS *args,
 /* de-init UDF */
 void memc_get_cas_deinit(UDF_INIT *initid)
 {
-  /* if we allocated initid->ptr, free it here */
+  /*
+    SECURITY FIX: memcached_free() on the cloned memcached_st was missing
+    here, leaking its connection state on every call to memc_get_cas().
+  */
   memc_function_st *container= (memc_function_st *)initid->ptr;
 
   memcached_result_free(&container->results);
+  memcached_free(&container->memc);
   free(container);
 
   return;
@@ -197,10 +201,16 @@ long long memc_get_cas_by_key(UDF_INIT *initid, UDF_ARGS *args,
 /* de-init UDF */
 void memc_get_cas_by_key_deinit(UDF_INIT *initid)
 {
-  /* if we allocated initid->ptr, free it here */
+  /*
+    SECURITY FIX: both the result free and the memcached_st free were
+    missing (one commented out entirely), leaking the result buffer and
+    the cloned memcached_st's connections on every call to
+    memc_get_cas_by_key().
+  */
   memc_function_st *container= (memc_function_st *)initid->ptr;
 
-  //memcached_result_free(&container->results);
+  memcached_result_free(&container->results);
+  memcached_free(&container->memc);
   free(container);
 
   return;

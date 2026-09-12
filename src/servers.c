@@ -296,9 +296,18 @@ my_bool memc_servers_behavior_set_init(__attribute__ ((unused)) UDF_INIT *initid
       ! strcasecmp(args->args[0], "MEMCACHED_BEHAVIOR_CONNECT_TIMEOUT") ||
       ! strcasecmp(args->args[0], "MEMCACHED_BEHAVIOR_RETRY_TIMEOUT") ||
       ! strcasecmp(args->args[0], "MEMCACHED_BEHAVIOR_IO_MSG_WATERMARK") ||
-      ! strcasecmp(args->args[0], "MEMCACHED_BEHAVIOR_IO_BYTES_WATERMARK"))
+      ! strcasecmp(args->args[0], "MEMCACHED_BEHAVIOR_IO_BYTES_WATERMARK") ||
+      ! strcasecmp(args->args[0], "MEMCACHED_BEHAVIOR_BINARY_PROTOCOL") ||
+      ! strcasecmp(args->args[0], "MEMCACHED_BEHAVIOR_SND_TIMEOUT") ||
+      ! strcasecmp(args->args[0], "MEMCACHED_BEHAVIOR_RCV_TIMEOUT") ||
+      ! strcasecmp(args->args[0], "MEMCACHED_BEHAVIOR_SERVER_FAILURE_LIMIT"))
   {
     /*
+      CORRECTNESS FIX: added BINARY_PROTOCOL/SND_TIMEOUT/RCV_TIMEOUT/
+      SERVER_FAILURE_LIMIT, which memc_servers_behavior_set() already
+      handles but this validator did not recognize, so it rejected
+      them as "unknown" before the value function ever ran.
+
       What type of check the values passed to these behaviors?
       Range?
     */
@@ -318,7 +327,7 @@ my_bool memc_servers_behavior_set_init(__attribute__ ((unused)) UDF_INIT *initid
 long long memc_servers_behavior_set(__attribute__ ((unused)) UDF_INIT *initid,
                                     UDF_ARGS *args,
                                     __attribute__ ((unused)) char *is_null,
-                                    __attribute__ ((unused)) char *error)
+                                    char *error)
 {
   memcached_return rc;
   memcached_behavior behavior;
@@ -517,7 +526,13 @@ long long memc_servers_behavior_set(__attribute__ ((unused)) UDF_INIT *initid,
   }
   else
   {
-    sprintf(error, "ERROR: UNKNOWN BEHAVIOR TYPE!");
+    /*
+      SECURITY FIX: error is documented by MySQL's UDF ABI as a pointer
+      to a single byte, not a string buffer. sprintf() here overflowed
+      it. Log to stderr and set the single-byte flag instead.
+    */
+    fprintf(stderr, "memc_servers_behavior_set: unknown behavior type\n");
+    *error= 1;
     return 1;
   }
 
@@ -603,8 +618,8 @@ char *memc_servers_behavior_get(__attribute__ ((unused)) UDF_INIT *initid,
                                     UDF_ARGS *args,
                                     __attribute__ ((unused)) char *result,
                                     unsigned long *length,
-                                    __attribute__ ((unused)) char *is_null,
-                                    __attribute__ ((unused)) char *error)
+                                    char *is_null,
+                                    char *error)
 {
   memcached_return rc;
   memcached_behavior behavior;
@@ -663,7 +678,16 @@ char *memc_servers_behavior_get(__attribute__ ((unused)) UDF_INIT *initid,
     behavior= MEMCACHED_BEHAVIOR_IO_BYTES_WATERMARK;
   else
   {
-    sprintf(error, "ERROR: UNKNOWN BEHAVIOR TYPE!");
+    /*
+      SECURITY FIX: error/is_null are single-byte flag pointers per
+      MySQL's UDF ABI, not string buffers. sprintf() here overflowed
+      the error flag. Log to stderr and set the flags plus *length
+      instead.
+    */
+    fprintf(stderr, "memc_servers_behavior_get: unknown behavior type\n");
+    *is_null= 1;
+    *error= 1;
+    *length= 0;
     return (char *)NULL;
   }
 

@@ -35,6 +35,8 @@ DROP FUNCTION IF EXISTS memc_stats ;
 DROP FUNCTION IF EXISTS memc_stat_get_keys ;
 DROP FUNCTION IF EXISTS memc_stat_get_value ;
 
+DROP FUNCTION IF EXISTS memc_mset ;
+
 CREATE FUNCTION memc_add RETURNS INT SONAME "libmemcached_functions_mysql.so";
 CREATE FUNCTION memc_add_by_key RETURNS INT SONAME "libmemcached_functions_mysql.so";
 CREATE FUNCTION memc_servers_set RETURNS INT SONAME "libmemcached_functions_mysql.so";
@@ -71,4 +73,6 @@ CREATE FUNCTION memc_libmemcached_version RETURNS STRING SONAME "libmemcached_fu
 CREATE FUNCTION memc_stats RETURNS STRING SONAME "libmemcached_functions_mysql.so";
 CREATE FUNCTION memc_stat_get_keys RETURNS STRING SONAME "libmemcached_functions_mysql.so";
 CREATE FUNCTION memc_stat_get_value RETURNS STRING SONAME "libmemcached_functions_mysql.so";
+
+CREATE FUNCTION memc_mset RETURNS INT SONAME "libmemcached_functions_mysql.so";
 

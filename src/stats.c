@@ -24,13 +24,14 @@ my_bool memc_stat_get_keys_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 char *memc_stat_get_keys(UDF_INIT *initid, UDF_ARGS *args,
                          char *result,
                          unsigned long *length,
-                         char *is_null, char *error);
+                         char *is_null,
+                         char *error);
 void memc_stat_get_keys_deinit(UDF_INIT *initid);
 my_bool memc_stat_get_value_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
 char *memc_stat_get_value(UDF_INIT *initid, UDF_ARGS *args,
                           __attribute__ ((unused)) char *result,
                           unsigned long *length,
-                          __attribute__ ((unused)) char *is_null,
+                          char *is_null,
                           char *error);
 void memc_stat_get_value_deinit(UDF_INIT *initid);
 
@@ -69,11 +70,9 @@ my_bool memc_stats_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 char *memc_stats(UDF_INIT *initid, UDF_ARGS *args,
                 __attribute__ ((unused)) char *result,
                unsigned long *length,
-                __attribute__ ((unused)) char *is_null,
-                __attribute__ ((unused)) char *error)
+                char *is_null,
+                char *error)
 {
-  /* how do I utilise this? Print out in case of error? */
-  /* We'll just hard-code now? */
   unsigned int x;
   memcached_return rc;
   char buf[100];
@@ -93,10 +92,22 @@ char *memc_stats(UDF_INIT *initid, UDF_ARGS *args,
 
   if (rc != MEMCACHED_SUCCESS && rc != MEMCACHED_SOME_ERRORS)
   {
-    sprintf(error, "Failure to communicate with servers (%s)\n",
-	   memcached_strerror(&container->memc, rc));
-    *length= strlen(error);
-    return(error);
+    /*
+      SECURITY FIX: error is a pointer to a single byte per MySQL's UDF
+      ABI, not a string buffer. The original sprintf(error, ...) here
+      overflowed it (bounded by memcached_strerror()'s fixed strings,
+      but still real stack corruption), and then returned that same
+      1-byte address as if it were a valid result buffer. Log to
+      stderr and use the documented is_null/error flags instead.
+    */
+    fprintf(stderr, "memc_stats: failure to communicate with servers (%s)\n",
+            memcached_strerror(&container->memc, rc));
+    if (stat != NULL)
+      free(stat);
+    *is_null= 1;
+    *error= 1;
+    *length= 0;
+    return NULL;
   }
 
   /*server_list= memcached_server_list(&container->memc);*/
@@ -156,7 +167,6 @@ my_bool memc_stat_get_value_init(UDF_INIT *initid, UDF_ARGS *args, char *message
   char **ptr;
   memcached_return rc;
   int exists= 0;
-  unsigned int x;
   memc_function_st *container;
   memcached_stat_st *stat;
   memcached_server_st *servers;
@@ -182,6 +192,13 @@ my_bool memc_stat_get_value_init(UDF_INIT *initid, UDF_ARGS *args, char *message
   memcached_server_list_free(servers);
 
   stat= memcached_stat(&container->memc, NULL, &rc);
+  if (stat == NULL)
+  {
+    strncpy(message, "ERROR: unable to retrieve stats from server", MYSQL_ERRMSG_SIZE);
+    memcached_free(&container->memc);
+    free(container);
+    return 1;
+  }
 
   list= memcached_stat_get_keys(&container->memc, &stat[0], &rc);
   for (ptr= list; *ptr; ptr++)
@@ -193,14 +210,30 @@ my_bool memc_stat_get_value_init(UDF_INIT *initid, UDF_ARGS *args, char *message
   }
   if (!exists)
   {
-    char err_buf[50];
-    sprintf(err_buf, "ERROR: the stat key %s is not a valid stat!\n", args->args[1]);
-    strncpy(message, err_buf, MYSQL_ERRMSG_SIZE);
+    /*
+      SECURITY FIX (primary finding): the original code did
+      sprintf(err_buf, "...%s...", args->args[1]) into a fixed
+      50-byte stack buffer, where args->args[1] is the raw,
+      attacker-controlled "stat name" argument from the SQL call
+      with no length limit. Any stat name longer than about 9
+      characters overflowed err_buf on the stack. snprintf() with a
+      precision on %s bounds how much of args->args[1] is read/copied
+      regardless of its actual length, and writes directly into
+      `message`, which MySQL already sized to MYSQL_ERRMSG_SIZE -
+      removing the intermediate undersized buffer entirely.
+    */
+    snprintf(message, MYSQL_ERRMSG_SIZE,
+             "ERROR: the stat key '%.100s' is not a valid stat!",
+             args->args[1]);
+    free(list);
+    free(stat);
     memcached_free(&container->memc);
     free(container);
     return 1;
   }
 
+  free(list);
+  free(stat);
   initid->ptr= (char *)container;
 
   return 0;
@@ -212,15 +245,13 @@ my_bool memc_stat_get_value_init(UDF_INIT *initid, UDF_ARGS *args, char *message
 char *memc_stat_get_value(UDF_INIT *initid, UDF_ARGS *args,
                 __attribute__ ((unused)) char *result,
                unsigned long *length,
-                __attribute__ ((unused)) char *is_null,
+                char *is_null,
                 char *error)
 {
-  /* how do I utilise this? Print out in case of error? */
   memcached_return rc;
-  char *value;
+  char *value= NULL;
   char **list;
   char **ptr;
-  char buf[100];
   int exists= 0;
 
   memcached_stat_st *stat;
@@ -233,6 +264,14 @@ char *memc_stat_get_value(UDF_INIT *initid, UDF_ARGS *args,
   memcached_server_list_free(servers);
 
   stat= memcached_stat(&container->memc, NULL, &rc);
+  if (stat == NULL)
+  {
+    fprintf(stderr, "memc_stat_get_value: unable to retrieve stats\n");
+    *is_null= 1;
+    *error= 1;
+    *length= 0;
+    return NULL;
+  }
 
   list= memcached_stat_get_keys(&container->memc, &stat[0], &rc);
   for (ptr= list; *ptr; ptr++)
@@ -242,17 +281,53 @@ char *memc_stat_get_value(UDF_INIT *initid, UDF_ARGS *args,
       exists++;
     }
   }
+
   if (exists)
   {
     value= memcached_stat_get_value(&container->memc, &stat[0], args->args[1], &rc);
-    *length= strlen(value);
+    if (value != NULL)
+    {
+      /*
+        libmemcached hands back a freshly malloc'd string here. Copy it
+        into a buffer the container owns and frees in _deinit (reused
+        across calls), then free libmemcached's copy, instead of
+        returning its raw allocation straight to MySQL with nothing
+        left to ever free it.
+      */
+      if (container->stats_string == NULL)
+        container->stats_string= string_create(strlen(value) + 1);
+      else
+        string_reset(container->stats_string);
+      string_append(container->stats_string, value);
+      free(value);
+      *length= container->stats_string->length;
+      value= container->stats_string->string;
+    }
+    else
+    {
+      *is_null= 1;
+      *length= 0;
+    }
   }
   else
   {
-    sprintf(error, "ERROR: the stat key %s is not a valid stat!\n", args->args[1]);
-    *length=0;
+    /*
+      SECURITY FIX: same bug class as memc_stat_get_value_init, found
+      while patching it - sprintf(error, "...%s...", args->args[1])
+      wrote the attacker-controlled, unbounded "stat name" argument
+      into the single-byte error flag pointer. Log to stderr and use
+      the documented is_null/error flags instead.
+    */
+    fprintf(stderr, "memc_stat_get_value: stat key '%s' is not valid\n",
+            args->args[1]);
+    *is_null= 1;
+    *error= 1;
+    *length= 0;
     value= NULL;
   }
+
+  free(list);
+  free(stat);
 
   return value;
 }
@@ -263,6 +338,8 @@ void memc_stat_get_value_deinit(UDF_INIT *initid)
   /* if we allocated initid->ptr, free it here */
   memc_function_st *container= (memc_function_st *)initid->ptr;
 
+  if (container->stats_string != NULL)
+    free_string(container->stats_string);
   memcached_free(&container->memc);
   free(container);
 
@@ -301,8 +378,8 @@ my_bool memc_stat_get_keys_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
 char *memc_stat_get_keys(UDF_INIT *initid, UDF_ARGS *args,
                 __attribute__ ((unused)) char *result,
                unsigned long *length,
-                __attribute__ ((unused)) char *is_null,
-                __attribute__ ((unused)) char *error)
+                char *is_null,
+                char *error)
 {
 /*
   memc_stat
@@ -310,18 +387,39 @@ char *memc_stat_get_keys(UDF_INIT *initid, UDF_ARGS *args,
 */
   char **list;
   char **ptr;
-  char buf[100];
-  memcached_stat_st stat;
+  memcached_stat_st *stat;
   memcached_return rc;
   memc_function_st *container= (memc_function_st *)initid->ptr;
 
-  list= memcached_stat_get_keys(&container->memc, &stat, &rc);
+  /*
+    SECURITY FIX: this used to pass an uninitialized, stack-allocated
+    memcached_stat_st straight into memcached_stat_get_keys() without
+    ever calling memcached_stat() to populate it (unlike memc_stats()
+    and memc_stat_get_value() elsewhere in this file). libmemcached
+    would then walk garbage stack memory as if it were valid stat
+    data - undefined behavior, likely a crash or a read of whatever
+    happened to be on the stack. Populate it properly first.
+  */
+  stat= memcached_stat(&container->memc, NULL, &rc);
+  if (stat == NULL)
+  {
+    fprintf(stderr, "memc_stat_get_keys: unable to retrieve stats\n");
+    *is_null= 1;
+    *error= 1;
+    *length= 0;
+    return NULL;
+  }
+
+  string_reset(container->stats_string);
+
+  list= memcached_stat_get_keys(&container->memc, &stat[0], &rc);
   for (ptr= list; *ptr; ptr++)
   {
     string_append(container->stats_string, *ptr);
     string_append(container->stats_string, "\n");
   }
   free(list);
+  free(stat);
 
   *length= container->stats_string->length;
   return container->stats_string->string;

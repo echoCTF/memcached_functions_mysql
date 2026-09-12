@@ -62,6 +62,7 @@ my $funclist = {
     memc_stats                  => 'STRING',
     memc_stat_get_value         => 'STRING',
     memc_stat_get_keys          => 'STRING',
+    memc_mset                    => 'INT',
 };
 
 my $types = { 

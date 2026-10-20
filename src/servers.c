@@ -35,6 +35,10 @@ char *memc_server_list(UDF_INIT *initid, UDF_ARGS *args, char *result,
                        unsigned long *length, char *is_null, char *error);
 void memc_server_list_deinit(UDF_INIT *initid);
 
+my_bool memc_server_remove_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+long long memc_server_remove(UDF_INIT *initid, UDF_ARGS *args, char *result,
+                             unsigned long *length, char *is_null, char *error);
+
 my_bool memc_servers_behavior_set_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
 long long memc_servers_behavior_set(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
 /*void memc_servers_behavior_set_deinit(UDF_INIT *initid);*/
@@ -246,6 +250,118 @@ char *memc_server_list(UDF_INIT *initid,
 void memc_server_list_deinit(UDF_INIT *initid)
 {
   free_string((my_string_st *)initid->ptr);
+}
+
+my_bool memc_server_remove_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+  if (args->arg_count != 1)
+  {
+    strncpy(message, "Usage: memc_server_remove('<host:port>')", MYSQL_ERRMSG_SIZE);
+    return 1;
+  }
+
+  args->arg_type[0]= STRING_RESULT;
+  initid->ptr= NULL;
+
+  return 0;
+}
+
+/*
+  memc_server_remove
+  removes every pool entry matching 'host:port' (port defaults to 11211)
+  and returns how many were removed. NULL on bad argument or failure, in
+  which case the pool is left untouched. Behaviors are kept, weights are not.
+*/
+long long memc_server_remove(__attribute__ ((unused)) UDF_INIT *initid,
+                             UDF_ARGS *args,
+                             __attribute__ ((unused)) char *result,
+                             __attribute__ ((unused)) unsigned long *length,
+                             char *is_null,
+                             __attribute__ ((unused)) char *error)
+{
+  char target[512], *colon, *end;
+  unsigned long port= MEMCACHED_DEFAULT_PORT;
+  unsigned int count, i, removed= 0;
+  int failed= 0;
+  const memcached_instance_st *server;
+  memcached_server_st *keep= NULL, *tmp;
+  memcached_st *fresh;
+  memcached_return rc;
+
+  if (args->args[0] == NULL || args->lengths[0] == 0 ||
+      args->lengths[0] >= sizeof(target))
+  {
+    *is_null= 1;
+    return 0;
+  }
+  memcpy(target, args->args[0], args->lengths[0]);
+  target[args->lengths[0]]= '\0';
+
+  if ((colon= strrchr(target, ':')) != NULL)
+  {
+    *colon++= '\0';
+    port= strtoul(colon, &end, 10);
+    if (*colon == '\0' || *end != '\0' || port == 0 || port > 65535)
+    {
+      *is_null= 1;
+      return 0;
+    }
+  }
+
+  pthread_mutex_lock(&memc_servers_mutex);
+  if (master_memc == NULL)
+    master_memc= memcached_create(NULL);
+  count= master_memc ? memcached_server_count(master_memc) : 0;
+
+  /* collect every server we keep, count the ones that match */
+  for (i= 0; i < count && !failed; i++)
+  {
+    server= memcached_server_instance_by_position(master_memc, i);
+    if (memcached_server_port(server) == port &&
+        !strcasecmp(memcached_server_name(server), target))
+    {
+      removed++;
+      continue;
+    }
+    tmp= memcached_server_list_append(keep, memcached_server_name(server),
+                                      memcached_server_port(server), &rc);
+    if (tmp == NULL)
+      failed= 1;
+    else
+      keep= tmp;
+  }
+
+  /* rebuild on a clone (keeps behaviors) and swap, so a failure changes nothing */
+  if (removed && !failed)
+  {
+    fresh= memcached_clone(NULL, master_memc);
+    if (fresh == NULL)
+      failed= 1;
+    else
+    {
+      memcached_servers_reset(fresh);
+      if (keep == NULL || memcached_server_push(fresh, keep) == MEMCACHED_SUCCESS)
+      {
+        memcached_free(master_memc);
+        master_memc= fresh;
+      }
+      else
+      {
+        memcached_free(fresh);
+        failed= 1;
+      }
+    }
+  }
+  pthread_mutex_unlock(&memc_servers_mutex);
+
+  if (keep)
+    memcached_server_list_free(keep);
+  if (failed)
+  {
+    *is_null= 1;
+    return 0;
+  }
+  return (long long) removed;
 }
 
 

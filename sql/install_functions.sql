@@ -3,6 +3,7 @@ DROP FUNCTION IF EXISTS memc_add_by_key ;
 DROP FUNCTION IF EXISTS memc_servers_set ;
 DROP FUNCTION IF EXISTS memc_server_count ;
 DROP FUNCTION IF EXISTS memc_server_list ;
+DROP FUNCTION IF EXISTS memc_server_remove ;
 DROP FUNCTION IF EXISTS memc_set ;
 DROP FUNCTION IF EXISTS memc_set_by_key ;
 DROP FUNCTION IF EXISTS memc_cas ;
@@ -43,6 +44,7 @@ CREATE FUNCTION memc_add_by_key RETURNS INT SONAME "libmemcached_functions_mysql
 CREATE FUNCTION memc_servers_set RETURNS INT SONAME "libmemcached_functions_mysql.so";
 CREATE FUNCTION memc_server_count RETURNS INT SONAME "libmemcached_functions_mysql.so";
 CREATE FUNCTION memc_server_list RETURNS STRING SONAME "libmemcached_functions_mysql.so";
+CREATE FUNCTION memc_server_remove RETURNS INT SONAME "libmemcached_functions_mysql.so";
 CREATE FUNCTION memc_set RETURNS INT SONAME "libmemcached_functions_mysql.so";
 CREATE FUNCTION memc_set_by_key RETURNS INT SONAME "libmemcached_functions_mysql.so";
 CREATE FUNCTION memc_cas RETURNS INT SONAME "libmemcached_functions_mysql.so";

@@ -60,6 +60,7 @@ my $funclist = {
     memc_udf_version            => 'STRING',
     memc_server_count           => 'INT',
     memc_server_list            => 'STRING',
+    memc_server_remove          => 'INT',
     memc_stats                  => 'STRING',
     memc_stat_get_value         => 'STRING',
     memc_stat_get_keys          => 'STRING',

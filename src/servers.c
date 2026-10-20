@@ -30,6 +30,11 @@ long long memc_servers_set(UDF_INIT *initid, UDF_ARGS *args, char *result, unsig
 my_bool memc_server_count_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
 long long memc_server_count(UDF_INIT *initid, UDF_ARGS *args, char *result, unsigned long *length, char *is_null, char *error);
 
+my_bool memc_server_list_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
+char *memc_server_list(UDF_INIT *initid, UDF_ARGS *args, char *result,
+                       unsigned long *length, char *is_null, char *error);
+void memc_server_list_deinit(UDF_INIT *initid);
+
 my_bool memc_servers_behavior_set_init(UDF_INIT *initid, UDF_ARGS *args, char *message);
 long long memc_servers_behavior_set(UDF_INIT *initid, UDF_ARGS *args, char *is_null, char *error);
 /*void memc_servers_behavior_set_deinit(UDF_INIT *initid);*/
@@ -181,6 +186,66 @@ long long memc_server_count(__attribute__ ((unused)) UDF_INIT *initid,
   pthread_mutex_unlock(&memc_servers_mutex);
 
   return ((long long) count);
+}
+
+my_bool memc_server_list_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
+{
+  if (args->arg_count > 0)
+  {
+    strncpy(message, "This UDF takes no arguments: memc_server_list()", MYSQL_ERRMSG_SIZE);
+    return 1;
+  }
+
+  initid->max_length= MEMC_UDF_MAX_SIZE;
+  initid->ptr= (char *)string_create(256);
+
+  return 0;
+}
+
+/*
+  memc_server_list
+  returns the current servers as 'host:port,host:port', the same format
+  memc_servers_set() takes. NULL when no servers are set.
+*/
+char *memc_server_list(UDF_INIT *initid,
+                       __attribute__ ((unused)) UDF_ARGS *args,
+                       __attribute__ ((unused)) char *result,
+                       unsigned long *length,
+                       char *is_null,
+                       __attribute__ ((unused)) char *error)
+{
+  my_string_st *list= (my_string_st *)initid->ptr;
+  const memcached_instance_st *server;
+  unsigned int count, i;
+  char buf[512];
+
+  string_reset(list);
+
+  pthread_mutex_lock(&memc_servers_mutex);
+  if (master_memc == NULL)
+    master_memc= memcached_create(NULL);
+  count= master_memc ? memcached_server_count(master_memc) : 0;
+  for (i= 0; i < count; i++)
+  {
+    server= memcached_server_instance_by_position(master_memc, i);
+    snprintf(buf, sizeof(buf), "%s%s:%u", i ? "," : "",
+             memcached_server_name(server), (unsigned int) memcached_server_port(server));
+    string_append(list, buf);
+  }
+  pthread_mutex_unlock(&memc_servers_mutex);
+
+  if (!count)
+  {
+    *is_null= 1;
+    return NULL;
+  }
+  *length= list->length;
+  return list->string;
+}
+
+void memc_server_list_deinit(UDF_INIT *initid)
+{
+  free_string((my_string_st *)initid->ptr);
 }
 
 

@@ -37,6 +37,8 @@ my_bool memc_get_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
   args->arg_type[0]= STRING_RESULT;
 
   initid->max_length= MEMC_UDF_MAX_SIZE;
+  /* memc_get returns SQL NULL on a NULL key and on cache misses */
+  initid->maybe_null= 1;
 
   if ((container= calloc(1, sizeof(memc_function_st))) == NULL)
                    err(1, NULL);
@@ -65,11 +67,21 @@ char *memc_get(UDF_INIT *initid, UDF_ARGS *args,
 
   memc_function_st *container= (memc_function_st *)initid->ptr;
 
+  /* A SQL NULL key arrives here as a NULL pointer; passing it on would feed
+     NULL into printf("%s") and into libmemcached. Return NULL instead. */
+  if (args->args[0] == NULL)
+  {
+    *is_null= 1;
+    return NULL;
+  }
+
   rc= memcached_mget(&container->memc, (const char * const *)args->args, (size_t *)args->lengths, 1);
   if(rc!=MEMCACHED_SUCCESS)
   {
     *is_null= 1;
-    fprintf(stderr,"Couldn't get key: %s error was %s\n",args->args[0],memcached_strerror(&container->memc, rc));
+    fprintf(stderr,"Couldn't get key: %s error was %s\n",
+            args->args[0] ? args->args[0] : "(null)",
+            memcached_strerror(&container->memc, rc));
     return NULL;
   }
   memcached_fetch_result(&container->memc, &container->results, &rc);
@@ -114,6 +126,7 @@ my_bool memc_get_by_key_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
   args->arg_type[0]= args->arg_type[1]= STRING_RESULT;
 
   initid->max_length= MEMC_UDF_MAX_SIZE;
+  initid->maybe_null= 1;  /* returns SQL NULL on miss / NULL key */
   if((container=calloc(1,sizeof(memc_function_st)))==NULL)
     err(1, NULL);
   /* Init the memcached_st we will use for this pass */

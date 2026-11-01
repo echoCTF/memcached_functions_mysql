@@ -64,12 +64,19 @@ long long memc_set(UDF_INIT *initid, UDF_ARGS *args,
   if (args->args[1] == NULL)
     args->lengths[1]= 0;
 
+  /* A SQL NULL key arrives here as a NULL pointer; passing it on would feed
+     NULL into printf("%s") and into libmemcached. Report failure instead. */
+  if (args->args[0] == NULL)
+    return (long long) 0;
+
   rc= memcached_set(&container->memc,
                     args->args[0], (size_t)args->lengths[0],
                     args->args[1], (size_t)args->lengths[1],
                     container->expiration, (uint16_t)0);
   if(rc!= MEMCACHED_SUCCESS)
-    fprintf(stderr,"Couldn't store key: %s error was %s\n",args->args[0],memcached_strerror(&container->memc, rc));
+    fprintf(stderr,"Couldn't store key: %s error was %s\n",
+            args->args[0] ? args->args[0] : "(null)",
+            memcached_strerror(&container->memc, rc));
   return (rc != MEMCACHED_SUCCESS) ? (long long) 0 : (long long) 1;
 }
 
@@ -94,7 +101,6 @@ my_bool memc_set_by_key_init(UDF_INIT *initid, UDF_ARGS *args, char *message)
   rc= memc_get_servers(&container->memc);
 
   initid->ptr= (char *)container;
-  fprintf(stderr, "1: container->expiration %lld", container->expiration);
 
   return 0;
 }

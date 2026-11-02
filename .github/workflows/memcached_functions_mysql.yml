@@ -1,0 +1,106 @@
+name: memcached_functions_mysql
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "echoCTF/memcached_functions_mysql branch, tag or commit to build"
+        required: true
+        default: master
+        type: string
+      openbsd:
+        description: "OpenBSD release to build for"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - "7.9"
+          - "8.0"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: memcached_functions_mysql (OpenBSD ${{ matrix.openbsd }})
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        openbsd: ${{ fromJSON(inputs.openbsd == 'all' && '["7.9", "8.0"]' || format('["{0}"]', inputs.openbsd)) }}
+    defaults:
+      run:
+        shell: cpa.sh {0}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: echoCTF/memcached_functions_mysql
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      - name: Check for an existing release
+        id: check
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(git rev-parse HEAD)
+          short=$(git rev-parse --short=7 HEAD)
+          tag=memcached_functions_mysql-$short-openbsd-${{ matrix.openbsd }}
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "short=$short" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "asset=$tag-amd64.tar.gz" >> "$GITHUB_OUTPUT"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "release $tag exists, skipping"
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: cross-platform-actions/action@v1.7.0
+        if: steps.check.outputs.exists != 'true'
+        with:
+          operating_system: openbsd
+          architecture: x86-64
+          version: ${{ matrix.openbsd }}
+
+      - name: Build
+        if: steps.check.outputs.exists != 'true'
+        run: |
+          set -e
+          ac=$(pkg_info -Q autoconf | sed -n 's/^autoconf-\([0-9]*\.[0-9]*\).*/\1/p' | sort -t. -k1,1n -k2,2n | tail -1)
+          am=$(pkg_info -Q automake | sed -n 's/^automake-\([0-9]*\.[0-9]*\).*/\1/p' | sort -t. -k1,1n -k2,2n | tail -1)
+          sudo pkg_add autoconf%$ac automake%$am libtool gmake libmemcached mariadb-client
+          export AUTOCONF_VERSION=$ac AUTOMAKE_VERSION=$am
+          export ACLOCAL="aclocal -I /usr/local/share/aclocal"
+          ./config/bootstrap
+          ./configure \
+            --prefix=/usr/local \
+            --libdir=/usr/local/lib/mysql/plugin \
+            --disable-static \
+            --with-mysql=/usr/local/bin/mariadb_config \
+            --with-libmemcached=/usr/local
+          gmake
+          sudo gmake install DESTDIR=/tmp/stage
+          plugindir=/tmp/stage/usr/local/lib/mysql/plugin
+          sudo rm -f $plugindir/*.la
+          if [ ! -f $plugindir/libmemcached_functions_mysql.so ]; then
+            sudo cp $plugindir/libmemcached_functions_mysql.so.* $plugindir/libmemcached_functions_mysql.so
+          fi
+          sudo mkdir -p /tmp/stage/usr/local/share/memcached_functions_mysql
+          sudo cp sql/*.sql /tmp/stage/usr/local/share/memcached_functions_mysql/
+          sudo tar czf ${{ steps.check.outputs.asset }} -C /tmp/stage usr
+          tar tzvf ${{ steps.check.outputs.asset }}
+
+      - name: Release
+        if: steps.check.outputs.exists != 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.check.outputs.tag }}" ${{ steps.check.outputs.asset }} \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "memcached_functions_mysql ${{ steps.check.outputs.short }} (OpenBSD ${{ matrix.openbsd }})" \
+            --notes "https://github.com/echoCTF/memcached_functions_mysql/tree/${{ steps.check.outputs.sha }}"
